@@ -1,0 +1,48 @@
+---
+title: "Predict bounded continuous distributions"
+author: "David J. H. Shih"
+pdf-engine: pdflatex
+format:
+  pdf:
+    include-in-header:
+      - file: math.sty
+---
+
+# Continuous distribution in [0, 1]
+
+Suppose a neural network generates a real vector $\vec{a} \in
+\mathcal{R}^J$.
+
+We use $\vec{a}$ to parameterize a mixture of $K = J / 3$ beta distributions such that
+$$
+\begin{aligned}
+\vec{\pi} = \text{softmax}(\vec{a}_{1:K}) \\
+\vec{\alpha} = (\exp a_k)_{k=K+1}^{2K} \\
+\vec{\beta} = (\exp a_k)_{k=2K+1}^{3K} \\
+\vec{\theta} = ( \vec{\pi}, \vec{\alpha}, \vec{\beta} ) .
+\end{aligned}
+$$
+
+The cumulative distribution is
+$$
+F( x \mid \vec{\theta} ) =
+ \sum_k  \pi_k F_{\text{Beta}}( x \mid \alpha_k, \beta_k ) ,
+$$
+where $F_{\text{Beta}}$ is the cumulative distribution function of the beta
+distribution.
+
+# Continuous distribution in [a, b]
+
+Use $F(x \mid \alpha_k, \beta_k) =  F_{\text{Beta}}( \frac{x - a}{b - a} \mid \alpha_k, \beta_k )$
+as the base distribution in the mixture.
+
+
+# Other distributions
+
+Use $\vec{a}$ to parameterize a mixture of distributions with appropriate
+transformations on each $a_j$, involving
+- softmax for mixture weights
+- exp for a non-negative parameter
+- logistic for a parameter in [0, 1]
+
+
