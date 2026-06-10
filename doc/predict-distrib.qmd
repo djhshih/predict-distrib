@@ -41,6 +41,7 @@ as the base distribution in the mixture.
 
 Use $\vec{a}$ to parameterize a mixture of distributions with appropriate
 transformations on each $a_j$, involving
+
 - softmax for mixture weights
 - exp for a non-negative parameter
 - logistic for a parameter in [0, 1]
