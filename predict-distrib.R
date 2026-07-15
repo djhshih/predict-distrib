@@ -10,7 +10,7 @@ logistic <- function(x) {
 
 param_transform <- function(a) {
 	K <- length(a) / 3;
-	theta <- c(softmax(a[1:K]), logistic(a[(K+1):(2*K)]), exp(a[(2*K+1):J]));
+	theta <- c(softmax(a[1:K]), logistic(a[(K+1):(2*K)]), exp(a[(2*K+1):length(a)]));
 	w <- theta[1:K];
 	mu <- theta[(K+1):(2*K)];
 	lambda <- theta[(2*K+1):(3*K)];
@@ -89,6 +89,8 @@ lines(xs, yhat2, col="royalblue3");
 
 library(io)
 data <- qread("data/ccoc-ts_methy_beta_cleaned_dist.rds");
+
+# fit on counts of one real sample
 
 xs <- data[, 1];
 target.pdf <- data[, 2];
