@@ -28,3 +28,170 @@
 #   = \log p(\theta) + 
 #     \sum_i \sum_j \sum_k \hat{z_{ijk}} \log f(v_j \mid \theta_k)
 
+
+pmfmix_initialize <- function(C, v, K, f, initialize_theta, hparams, fixed) {
+  N <- nrow(C)
+
+  if (is.null(fixed$w)) {
+    w <- matrix(runif(N * K), N, K)
+    w <- w / rowSums(w)
+  } else {
+    w <- fixed$w
+  }
+
+  if (is.null(fixed$theta)) {
+    theta <- initialize_theta(C, v, K, hparams)
+  } else {
+    theta <- fixed$theta
+  }
+
+  list(w = w, theta = theta)
+}
+
+pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
+                       fixed, log_prior_theta, verbose = TRUE) {
+  obj.old <- -Inf
+  for (iter in 1:control$niter) {
+    if (is.null(fixed$Gamma)) {
+      params$Gamma <- pmfmix_update_gamma(C, v, params, f)
+    }
+    if (is.null(fixed$w)) {
+      params$w <- pmfmix_update_w(C, params, hparams)
+    }
+    if (is.null(fixed$theta)) {
+      params$theta <- update_theta(C, v, params$Gamma, params$theta, hparams)
+    }
+    obj <- pmfmix_obj(C, v, params, f, hparams, log_prior_theta)
+    if (obj - obj.old < control$abstol) {
+      break
+    }
+    obj.old <- obj
+  }
+
+  list(lp = obj, iter = iter, params = params)
+}
+
+pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
+                   hparams = NULL, control = NULL, fixed = NULL,
+                   log_prior_theta = NULL, verbose = TRUE) {
+  stime <- proc.time()
+
+  if (is.vector(C)) {
+    C <- matrix(C, nrow = 1)
+  }
+
+  J <- ncol(C)
+
+  hparams.default <- list(alpha = rep(1, K))
+  hparams <- c(hparams, hparams.default)
+
+  control.default <- list(
+    nstart = 5,
+    niter = 20,
+    abstol = 1e-3
+  )
+  control <- c(control, control.default)
+
+  res <- lapply(1:control$nstart, function(b) {
+    params <- pmfmix_initialize(C, v, K, f, initialize_theta, hparams, fixed)
+    pmfmix_opt(C, v, params, f, update_theta, hparams, control, fixed,
+               log_prior_theta, verbose = verbose)
+  })
+
+  lps <- vapply(res, function(x) x$lp, -Inf)
+  opt <- res[[which.max(lps)]]
+  if (verbose) {
+    message("log joint probs: ", paste(format(lps, digits = 2), collapse = ", "))
+  }
+
+  opt2 <- pmfmix_opt(C, v, opt$params, f, update_theta, hparams, control, fixed,
+                     log_prior_theta, verbose = verbose)
+  opt2$iter <- c(opt$iter, opt2$iter)
+
+  if (verbose) {
+    message("Elapsed time: ", proc.time()[3] - stime[3])
+  }
+
+  structure(opt2, class = "pmfmix")
+}
+
+pmfmix_update_gamma <- function(C, v, params, f) {
+  K <- length(params$theta)
+  J <- ncol(C)
+  N <- nrow(C)
+
+  Gamma <- array(0, c(N, J, K))
+  f_k <- vector("list", K)
+  for (k in 1:K) {
+    f_k[[k]] <- f(v, params$theta[[k]])
+  }
+  for (i in 1:N) {
+    for (j in 1:J) {
+      s <- 0
+      for (k in 1:K) {
+        Gamma[i, j, k] <- params$w[i, k] * f_k[[k]][j]
+        s <- s + Gamma[i, j, k]
+      }
+      if (s > 0) {
+        Gamma[i, j, ] <- Gamma[i, j, ] / s
+      }
+    }
+  }
+  Gamma
+}
+
+pmfmix_update_w <- function(C, params, hparams) {
+  K <- ncol(params$w)
+  N <- nrow(C)
+  n <- rowSums(C)
+
+  w <- matrix(0, N, K)
+  for (i in 1:N) {
+    for (k in 1:K) {
+      w[i, k] <- sum(C[i, ] * params$Gamma[i, , k]) + hparams$alpha[k] - 1
+    }
+    denom <- n[i] + sum(hparams$alpha) - K
+    if (denom > 0) {
+      w[i, ] <- w[i, ] / denom
+    }
+  }
+  w
+}
+
+pmfmix_obj <- function(C, v, params, f, hparams, log_prior_theta = NULL) {
+  lp_w <- 0
+  for (k in seq_along(hparams$alpha)) {
+    lp_w <- lp_w + (hparams$alpha[k] - 1) * sum(log(params$w[, k]))
+  }
+
+  lp_theta <- 0
+  if (!is.null(log_prior_theta)) {
+    lp_theta <- log_prior_theta(params$theta, hparams)
+  }
+
+  N <- nrow(C)
+  J <- ncol(C)
+  K <- length(params$theta)
+
+  f_k <- vector("list", K)
+  for (k in 1:K) {
+    f_k[[k]] <- f(v, params$theta[[k]])
+  }
+
+  ll <- 0
+  for (i in 1:N) {
+    for (j in 1:J) {
+      if (C[i, j] > 0) {
+        s <- 0
+        for (k in 1:K) {
+          s <- s + params$w[i, k] * f_k[[k]][j]
+        }
+        if (s > 0) {
+          ll <- ll + C[i, j] * log(s)
+        }
+      }
+    }
+  }
+
+  lp_w + lp_theta + ll
+}
