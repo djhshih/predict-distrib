@@ -70,11 +70,9 @@ lines(xs, yhat, col="royalblue3");
 
 # fit count data
 
-pseudo.count <- 1;
-
 # negative unnormalized log multinomial distribution
 objective_ulmultinom <- function(a) {
-	- sum( (counts + pseudo.count - 1) * log(pdf_transform(a, xs)) )
+	- sum( counts * log(pdf_transform(a, xs)) )
 }
 
 opt2 <- optim(a0, objective_ulmultinom, method="L-BFGS-B");

@@ -116,11 +116,9 @@ distrib_plots(xs, yhat, main="predicted pdf")
 
 # fit count data
 
-pseudo.count <- 1;
-
 # negative unnormalized log multinomial distribution
 objective_ulmultinom <- function(a) {
-	- sum( (counts + pseudo.count - 1) * log(mpdf_transform(a, xs, N, K)) )
+	- sum( counts * log(mpdf_transform(a, xs, N, K)) )
 }
 
 opt2 <- optim(a0, objective_ulmultinom, method="L-BFGS-B");
