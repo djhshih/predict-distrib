@@ -1,0 +1,17 @@
+Package: pmfmix
+Type: Package
+Title: Probability mass function mixture Models
+Version: 0.1
+Date: 2026-07-16
+Authors@R: person(given = c("David", "J.", "H."),
+                    family = "Shih",
+                    role = c("aut", "cre"),
+                    email = "djh.shih@gmail.com"))
+Description: Mixture model on probability mass functions.
+URL: https://github.com/djhshih/pmfmix
+Imports: stats, mvtnorm, matrixStats, Rcpp
+LinkingTo: Rcpp, RcppArmadillo
+Suggests: devtools, testthat
+License: GPL (>= 3)
+Encoding: UTF-8
+RoxygenNote: 7.3.3
