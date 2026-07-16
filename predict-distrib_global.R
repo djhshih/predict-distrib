@@ -184,7 +184,10 @@ params <- mparam_transform(opt2$par, N, K);
 
 out.fn <- filename("ccoc-ts", path="out", tag=c("methy", "beta"));
 
-plot(xs, target.pdfs[1, ])
+i <- 5;
+plot(xs, target.pdfs[i, ], type="l")
+lines(xs, counts[i, ] / rowSums(counts[i, , drop=FALSE]), col="red")
+lines(xs, yhat2[i, ], col="blue")
 
 qdraw(
 	{
