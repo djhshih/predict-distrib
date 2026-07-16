@@ -22,7 +22,7 @@
 #  = c_{ij} \gamma_{ijk}
 
 # w_{ik}
-#  = (\sum_j \hat{z_{ijk}} + \alpha_k - 1) / (n_i + \sum_k \alpha_k - 1)
+#  = (\alpha_k - 1 + \sum_j \hat{z_{ijk}}) / (n_i + \sum_k \alpha_k - 1)
 
 # Q(\theta) = E_Z[ \log p(C, \theta, Z) ]
 #   = \log p(\theta) + 
@@ -52,16 +52,23 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
                        fixed, log_prior_theta, verbose = TRUE) {
   obj.old <- -Inf
   for (iter in 1:control$niter) {
+    if (is.null(fixed$f)) {
+      params$f <- pmfmix_update_f(f, v, params);
+    }
     if (is.null(fixed$Gamma)) {
-      params$Gamma <- pmfmix_update_gamma(C, v, params, f)
+      params$Gamma <- pmfmix_update_gamma(C, params);
+    }
+    if (is.null(fixed$z)) {
+      params$z <- pmfmix_update_z(C, params);
     }
     if (is.null(fixed$w)) {
-      params$w <- pmfmix_update_w(C, params, hparams)
+      params$w <- pmfmix_update_w(C, params, hparams);
     }
     if (is.null(fixed$theta)) {
       params$theta <- update_theta(C, v, params$Gamma, params$theta, hparams)
     }
-    obj <- pmfmix_obj(C, v, params, f, hparams, log_prior_theta)
+    obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
+    print(obj)
     if (obj - obj.old < control$abstol) {
       break
     }
@@ -72,41 +79,47 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
 }
 
 pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
-                   hparams = NULL, control = NULL, fixed = NULL,
+                   hparams = NULL, control = NULL, control2 = NULL, fixed = NULL,
                    log_prior_theta = NULL, verbose = TRUE) {
-  stime <- proc.time()
+  stime <- proc.time();
 
   if (is.vector(C)) {
-    C <- matrix(C, nrow = 1)
+    C <- matrix(C, nrow = 1);
   }
 
-  J <- ncol(C)
+  J <- ncol(C);
 
-  hparams.default <- list(alpha = rep(1, K))
-  hparams <- c(hparams, hparams.default)
+  hparams.default <- list(alpha = rep(1, K));
+  hparams <- c(hparams, hparams.default);
 
   control.default <- list(
     nstart = 5,
     niter = 20,
     abstol = 1e-3
   )
-  control <- c(control, control.default)
+  control <- c(control, control.default);
+
+  control2.default <- list(
+    niter = 100,
+    abstol = 1e-6
+  )
+  control2 <- c(control2, control2.default);
 
   res <- lapply(1:control$nstart, function(b) {
-    params <- pmfmix_initialize(C, v, K, f, initialize_theta, hparams, fixed)
+    params <- pmfmix_initialize(C, v, K, f, initialize_theta, hparams, fixed);
     pmfmix_opt(C, v, params, f, update_theta, hparams, control, fixed,
-               log_prior_theta, verbose = verbose)
-  })
+               log_prior_theta, verbose = verbose);
+  });
 
-  lps <- vapply(res, function(x) x$lp, -Inf)
-  opt <- res[[which.max(lps)]]
+  lps <- vapply(res, function(x) x$lp, -Inf);
+  opt <- res[[which.max(lps)]];
   if (verbose) {
     message("log joint probs: ", paste(format(lps, digits = 2), collapse = ", "))
   }
 
-  opt2 <- pmfmix_opt(C, v, opt$params, f, update_theta, hparams, control, fixed,
-                     log_prior_theta, verbose = verbose)
-  opt2$iter <- c(opt$iter, opt2$iter)
+  opt2 <- pmfmix_opt(C, v, opt$params, f, update_theta, hparams, control2, fixed,
+                     log_prior_theta, verbose = verbose);
+  opt2$iter <- c(opt$iter, opt2$iter);
 
   if (verbose) {
     message("Elapsed time: ", proc.time()[3] - stime[3])
@@ -115,79 +128,79 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
   structure(opt2, class = "pmfmix")
 }
 
-pmfmix_update_gamma <- function(C, v, params, f) {
-  K <- length(params$theta)
-  J <- ncol(C)
-  N <- nrow(C)
+pmfmix_update_gamma <- function(C, params) {
+  N <- nrow(C);
+  J <- ncol(C);
+  K <- ncol(params$w);
 
-  Gamma <- array(0, c(N, J, K))
-  f_k <- vector("list", K)
-  for (k in 1:K) {
-    f_k[[k]] <- f(v, params$theta[[k]])
-  }
+  Gamma <- array(0, c(N, J, K));
   for (i in 1:N) {
     for (j in 1:J) {
       s <- 0
       for (k in 1:K) {
-        Gamma[i, j, k] <- params$w[i, k] * f_k[[k]][j]
-        s <- s + Gamma[i, j, k]
+        Gamma[i, j, k] <- params$w[i, k] * params$f[[k]][j];
+        s <- s + Gamma[i, j, k];
       }
       if (s > 0) {
-        Gamma[i, j, ] <- Gamma[i, j, ] / s
+        Gamma[i, j, ] <- Gamma[i, j, ] / s;
       }
     }
   }
   Gamma
 }
 
-pmfmix_update_w <- function(C, params, hparams) {
-  K <- ncol(params$w)
-  N <- nrow(C)
-  n <- rowSums(C)
-
-  w <- matrix(0, N, K)
+pmfmix_update_z <- function(C, params) {
+  N <- nrow(C);
+  J <- ncol(C);
+  K <- ncol(params$w);
+  z <- array(0, c(N, J, K));
   for (i in 1:N) {
     for (k in 1:K) {
-      w[i, k] <- sum(C[i, ] * params$Gamma[i, , k]) + hparams$alpha[k] - 1
+      z[i, , k] <- C[i, ] * params$Gamma[i, , k];
     }
-    denom <- n[i] + sum(hparams$alpha) - K
-    if (denom > 0) {
-      w[i, ] <- w[i, ] / denom
+  }
+  z
+}
+
+pmfmix_update_w <- function(C, params, hparams) {
+  N <- nrow(params$w);
+  K <- ncol(params$w);
+  n <- rowSums(C);
+
+  w <- matrix(0, N, K);
+  for (i in 1:N) {
+    for (k in 1:K) {
+      w[i, k] <- sum(params$z[i, , k]) + hparams$alpha[k] - 1;
     }
+    w[i, ] <- w[i, ] / (n[i] + sum(hparams$alpha) - K);
   }
   w
 }
 
-pmfmix_obj <- function(C, v, params, f, hparams, log_prior_theta = NULL) {
-  lp_w <- 0
-  for (k in seq_along(hparams$alpha)) {
-    lp_w <- lp_w + (hparams$alpha[k] - 1) * sum(log(params$w[, k]))
-  }
+pmfmix_update_f <- function(f, v, params) {
+  lapply(params$theta, function(theta) f(v, theta))
+}
 
-  lp_theta <- 0
+pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
+  lp_w <- sum((hparams$alpha - 1) * log(t(params$w)));
+
+  lp_theta <- 0;
   if (!is.null(log_prior_theta)) {
-    lp_theta <- log_prior_theta(params$theta, hparams)
+    lp_theta <- log_prior_theta(params$theta, hparams);
   }
 
-  N <- nrow(C)
-  J <- ncol(C)
-  K <- length(params$theta)
+  N <- nrow(C);
+  J <- ncol(C);
+  K <- length(params$theta);
 
-  f_k <- vector("list", K)
-  for (k in 1:K) {
-    f_k[[k]] <- f(v, params$theta[[k]])
-  }
-
-  ll <- 0
+  ll <- 0;
   for (i in 1:N) {
     for (j in 1:J) {
       if (C[i, j] > 0) {
-        s <- 0
         for (k in 1:K) {
-          s <- s + params$w[i, k] * f_k[[k]][j]
-        }
-        if (s > 0) {
-          ll <- ll + C[i, j] * log(s)
+          ll <- ll + with(params,
+            z[i, j, k] * log(w[i, k] * f[[k]][j])
+          );
         }
       }
     }
