@@ -1,5 +1,6 @@
 library(io)
-source("R/pmfmix.R")
+library(devtools)
+load_all("pmfmix")
 
 # data <- t(qread("data/ccoc-ts_methy_beta_cleaned_dist.rds"));
 pheno0 <- qread("data/ccoc-ts_sample-info_stage3.tsv");
@@ -22,14 +23,6 @@ initialize_theta_beta <- function(C, v, K, hparams) {
   lapply(seq_len(K), function(k) {
     list(mu = mu_grid[k], lambda = lambda[k])
   })
-}
-
-logistic <- function(x) {
-	1 / (1 + exp(-x))
-}
-
-logit <- function(x) {
-  log(x) - log(1 - x)
 }
 
 update_theta_beta <- function(C, v, params, hparams) {
@@ -61,15 +54,11 @@ update_theta_beta <- function(C, v, params, hparams) {
     # w^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
     lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
-    # message("lp:")
-    # print(str(exp(lp) / sum(exp(lp))))
     lp
   }
 
   # negative log likelihood
   objective <- function(a) {
-    # message("z:")
-    # print(str(params$z / sum(params$z)))
     - sum( params$z * lpdf_transform(a) )
   }
 

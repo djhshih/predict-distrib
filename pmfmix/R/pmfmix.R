@@ -71,7 +71,9 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
       params$f <- pmfmix_update_f(f, v, params);
     }
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
-    message("iter: ", iter, ", objective: ", obj)
+    if (verbose) {
+      message("iter: ", iter, ", objective: ", obj)
+    }
     if (obj - obj.old < control$abstol) {
       break
     }
@@ -109,7 +111,7 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
   control2 <- c(control2, control2.default);
 
   res <- lapply(1:control$nstart, function(b) {
-    message("start ", b)
+    if (verbose) message("start ", b)
     params <- pmfmix_initialize(C, v, K, f, initialize_theta, hparams, fixed);
     pmfmix_opt(C, v, params, f, update_theta, hparams, control, fixed,
                log_prior_theta, verbose = verbose);
@@ -132,6 +134,7 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
   structure(opt2, class = "pmfmix")
 }
 
+# depends on f
 pmfmix_update_gamma <- function(C, params) {
   N <- nrow(C);
   J <- ncol(C);
@@ -201,7 +204,8 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
     for (j in 1:J) {
       if (C[i, j] > 0) {
         for (k in 1:K) {
-          # guard against log(0) = -Inf
+          # guard against 0 * log(0) = NaN
+          # here, 0 * log(0) = 0
           if (params$z[i, j, k] > 0) {
             ll <- ll + with(params,
               z[i, j, k] * log(w[i, k] * f[[k]][j])
