@@ -1,9 +1,8 @@
 library(devtools)
 load_all("..")
 
-beta_pmf <- function(v, theta) {
-  probs <- dbeta(v, shape1 = theta$mu * theta$lambda, shape2 = (1 - theta$mu) * theta$lambda)
-  probs / sum(probs)
+beta_lpmf <- function(v, theta) {
+  dbeta(v, shape1 = theta$mu * theta$lambda, shape2 = (1 - theta$mu) * theta$lambda, log=TRUE)
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
@@ -24,14 +23,14 @@ theta <- list(
   list(mu = 0.7, lambda = 25)
 )
 true_w <- rbind(c(0.8, 0.2), c(0.25, 0.75))
-pmf_mat <- do.call(rbind, lapply(theta, function(th) beta_pmf(v, th)))
+pmf_mat <- do.call(rbind, lapply(theta, function(th) exp(beta_lpmf(v, th))))
 C <- t(apply(true_w %*% pmf_mat, 1, function(p) as.vector(rmultinom(1, 4000, p))))
 
 fit <- pmfmix(
   C = C,
   v = v,
   K = 2,
-  f = beta_pmf,
+  f = beta_lpmf,
   initialize_theta = initialize_theta_beta,
   update_theta = update_theta_identity,
   hparams = list(alpha = c(1, 1)),

@@ -52,7 +52,7 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
                        fixed, log_prior_theta, verbose = TRUE) {
   obj.old <- -Inf
   if (is.null(fixed$f)) {
-    params$F <- pmfmix_update_f(f, v, params);
+    params$lF <- pmfmix_update_f(f, v, params);
   }
   for (iter in 1:control$niter) {
     if (is.null(fixed$Gamma)) {
@@ -67,8 +67,8 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
     if (is.null(fixed$theta)) {
       params$theta <- update_theta(C, v, params, hparams)
     }
-    if (is.null(fixed$F)) {
-      params$F <- pmfmix_update_f(f, v, params);
+    if (is.null(fixed$lF)) {
+      params$lF <- pmfmix_update_f(f, v, params);
     }
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
     if (verbose) {
@@ -143,8 +143,8 @@ pmfmix_update_gamma <- function(C, params) {
   Gamma <- array(0, c(N, J, K));
   for (i in 1:N) {
     for (j in 1:J) {
-      s <- params$W[i, ] * params$F[, j];
-      Gamma[i, j, ] <- s / sum(s);
+      s <- log(params$W[i, ]) + params$lF[, j];
+      Gamma[i, j, ] <- exp(s - matrixStats::logSumExp(s));
     }
   }
   Gamma
@@ -176,13 +176,13 @@ pmfmix_update_w <- function(params, hparams) {
   w / rowSums(w)
 }
 
-pmfmix_update_f <- function(f, v, params) {
-  F <- unlist(lapply(params$theta, function(theta) {
-    pmf <- f(v, theta);
-    pmf / sum(pmf)
+pmfmix_update_f <- function(lf, v, params) {
+  lF <- unlist(lapply(params$theta, function(theta) {
+    lpmf <- lf(v, theta);
+    lpmf - matrixStats::logSumExp(lpmf)
   }));
   # result is J by K; output K by J
-  t(matrix(F, nrow=length(v)))
+  t(matrix(lF, nrow=length(v)))
 }
 
 pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
@@ -206,7 +206,7 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
           # here, 0 * log(0) = 0
           if (params$Z[i, j, k] > 0) {
             ll <- ll + with(params,
-              Z[i, j, k] * (log(W[i, k]) + log(F[k, j]))
+              Z[i, j, k] * (log(W[i, k]) + lF[k, j])
             );
           }
         }

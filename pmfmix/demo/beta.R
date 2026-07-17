@@ -1,8 +1,8 @@
 library(devtools) 
 load_all("..")
 
-beta_pmf <- function(v, theta) {
-  dbeta(v, shape1 = theta$mu * theta$lambda, shape2 = (1 - theta$mu) * theta$lambda)
+beta_lpmf <- function(v, theta) {
+  dbeta(v, shape1 = theta$mu * theta$lambda, shape2 = (1 - theta$mu) * theta$lambda, log=TRUE)
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
@@ -94,7 +94,7 @@ true_w <- rbind(
   c(0.90, 0.10)
 )
 
-pmf_mat <- do.call(rbind, lapply(true_theta, function(th) beta_pmf(v, th)))
+pmf_mat <- do.call(rbind, lapply(true_theta, function(th) exp(beta_lpmf(v, th))))
 pmf_mat <- pmf_mat / rowSums(pmf_mat);
 
 target <- true_w %*% pmf_mat;
@@ -106,7 +106,7 @@ fit <- pmfmix(
   C = C,
   v = v,
   K = 2,
-  f = beta_pmf,
+  f = beta_lpmf,
   initialize_theta = initialize_theta_beta,
   update_theta = update_theta_beta,
   hparams = list(alpha = c(1, 1)),
@@ -117,10 +117,11 @@ fit <- pmfmix(
 
 plot(target, C / rowSums(C))
 
-plot(pmf_mat, fit$params$F)
-cor(c(pmf_mat), c(fit$params$F))
+pmf_mat_hat <- exp(fit$params$lF);
+plot(pmf_mat, pmf_mat_hat)
+cor(c(pmf_mat), c(pmf_mat_hat))
 
-target.hat <- fit$params$W %*% fit$params$F;
+target.hat <- fit$params$W %*% pmf_mat_hat;
 
 print(target)
 print(target.hat)

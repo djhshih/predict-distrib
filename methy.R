@@ -13,8 +13,8 @@ all(pheno$sample_id == rownames(data[-1, ]), na.rm=TRUE)
 
 # ---
 
-beta_pmf <- function(v, theta) {
-	dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda);
+beta_lpmf <- function(v, theta) {
+	dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda, log=TRUE);
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
@@ -89,7 +89,7 @@ fit <- pmfmix(
 	C = counts,
 	v = v,
 	K = K,
-	f = beta_pmf,
+	f = beta_lpmf,
 	initialize_theta = initialize_theta_beta,
 	update_theta = update_theta_beta,
 	hparams = list(
@@ -100,7 +100,7 @@ fit <- pmfmix(
 	verbose = TRUE
 )
 
-predicted.pdfs <- fit$params$W %*% fit$params$F;
+predicted.pdfs <- fit$params$W %*% exp(fit$params$lF);
 rowSums(predicted.pdfs)
 
 mean( (predicted.pdfs - target.pdfs)^2 )
