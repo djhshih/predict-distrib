@@ -38,7 +38,7 @@ update_theta_beta <- function(C, v, params, hparams) {
     theta <- mparam_transform(a);
     lp <- with(theta, unlist(lapply(v,
       # mixture of beta distributions
-      function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+      function(x) log(t(params$W)) + dbeta(x, mu*lambda, (1 - mu)*lambda, log=TRUE)
     )));
     # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
@@ -54,6 +54,7 @@ update_theta_beta <- function(C, v, params, hparams) {
     theta <- mparam_transform(a);
     lp <- with(theta, unlist(lapply(v,
       # mixture of beta distributions
+      # numeric overflow can occur due to small dbeta, causing log(0) = -Inf
       function(x) log(colSums(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda)))
     )));
     # output is N by K
@@ -65,11 +66,12 @@ update_theta_beta <- function(C, v, params, hparams) {
     - sum( C * lpdf_transform(a) )
   }
 
-  #objective <- objective_q;
-  objective <- objective_marginal;
+  objective <- objective_q;
+  #objective <- objective_marginal;
 
   a0 <- mparam_rev_transform(params$theta);
-  opt <- optim(a0, objective, method="L-BFGS-B", lower=-4, upper=5);
+  # NB bounds are adjusted to avoid numeric overflow (-Inf and Inf)
+  opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
   theta <- mparam_transform(opt$par);
 
   lapply(seq_len(K), function(k) {

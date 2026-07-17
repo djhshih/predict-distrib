@@ -49,9 +49,9 @@ update_theta_beta <- function(C, v, params, hparams) {
 		theta <- mparam_transform(a);
 		lp <- with(theta, unlist(lapply(v,
 			# mixture of beta distributions
-			function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+			function(x) log(t(params$W)) + dbeta(x, mu*lambda, (1 - mu)*lambda, log=TRUE)
 		)));
-		# W^T is K by N,	dbeta(x, ...) is K	 ->	each item is K by N
+		# W^T is K by N,  dbeta(x, ...) is K  ->  each item is K by N
 		# output is K by N by J; need N by J by K
 		lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
 		lp
@@ -63,7 +63,7 @@ update_theta_beta <- function(C, v, params, hparams) {
 	}
 
 	a0 <- mparam_rev_transform(params$theta);
-	opt <- optim(a0, objective, method="L-BFGS-B", lower=-4, upper=4);
+	opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
 	theta <- mparam_transform(opt$par);
 
 	lapply(seq_len(K), function(k) {

@@ -206,7 +206,7 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
           # here, 0 * log(0) = 0
           if (params$Z[i, j, k] > 0) {
             ll <- ll + with(params,
-              Z[i, j, k] * log(W[i, k] * F[k, j])
+              Z[i, j, k] * (log(W[i, k]) + log(F[k, j]))
             );
           }
         }
