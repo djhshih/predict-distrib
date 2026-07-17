@@ -51,9 +51,7 @@ pmfmix_initialize <- function(C, v, K, f, initialize_theta, hparams, fixed) {
 pmfmix_opt <- function(C, v, params, lf, update_theta, hparams, control,
                        fixed, log_prior_theta, verbose = TRUE) {
   obj.old <- -Inf
-  if (is.null(fixed$lF)) {
-    params$lF <- pmfmix_update_f(lf, v, params);
-  }
+  params$lF <- pmfmix_update_f(lf, v, params);
   for (iter in 1:control$niter) {
     if (is.null(fixed$Gamma)) {
       params$Gamma <- pmfmix_update_gamma(C, params);
@@ -67,9 +65,7 @@ pmfmix_opt <- function(C, v, params, lf, update_theta, hparams, control,
     if (is.null(fixed$theta)) {
       params$theta <- update_theta(C, v, params, hparams)
     }
-    if (is.null(fixed$lF)) {
-      params$lF <- pmfmix_update_f(lf, v, params);
-    }
+    params$lF <- pmfmix_update_f(lf, v, params);
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
     if (verbose) {
       message("iter: ", iter, ", objective: ", obj)
