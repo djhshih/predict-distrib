@@ -133,8 +133,8 @@ par(mfrow=c(2, 1))
 distrib_plots(xs, target.pdfs, main="observed pdf")
 distrib_plots(xs, yhat2, main="predicted pdf")
 
-sum( (yhat - target.pdfs)^2 )
-sum( (yhat2 - target.pdfs)^2 )
+mean( (yhat - target.pdfs)^2 )
+mean( (yhat2 - target.pdfs)^2 )
 
 # ---
 
@@ -197,7 +197,7 @@ qdraw(
 	file = insert(out.fn, tag=c("pdf", "observed-vs-predicted"), ext="pdf")
 )
 
-sum( (yhat2 - target.pdfs)^2 )
+mean( (yhat2 - target.pdfs)^2 )
 
 library(mmalign)
 qdraw(

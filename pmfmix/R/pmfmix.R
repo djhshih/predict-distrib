@@ -32,11 +32,11 @@
 pmfmix_initialize <- function(C, v, K, f, initialize_theta, hparams, fixed) {
   N <- nrow(C)
 
-  if (is.null(fixed$w)) {
-    w <- matrix(runif(N * K), N, K)
-    w <- w / rowSums(w)
+  if (is.null(fixed$W)) {
+    W <- matrix(runif(N * K), N, K)
+    W <- W / rowSums(W)
   } else {
-    w <- fixed$w
+    W <- fixed$W
   }
 
   if (is.null(fixed$theta)) {
@@ -45,30 +45,30 @@ pmfmix_initialize <- function(C, v, K, f, initialize_theta, hparams, fixed) {
     theta <- fixed$theta
   }
 
-  list(w = w, theta = theta)
+  list(W = W, theta = theta)
 }
 
 pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
                        fixed, log_prior_theta, verbose = TRUE) {
   obj.old <- -Inf
   if (is.null(fixed$f)) {
-    params$f <- pmfmix_update_f(f, v, params);
+    params$F <- pmfmix_update_f(f, v, params);
   }
   for (iter in 1:control$niter) {
     if (is.null(fixed$Gamma)) {
       params$Gamma <- pmfmix_update_gamma(C, params);
     }
-    if (is.null(fixed$z)) {
-      params$z <- pmfmix_update_z(C, params);
+    if (is.null(fixed$Z)) {
+      params$Z <- pmfmix_update_z(C, params);
     }
-    if (is.null(fixed$w)) {
-      params$w <- pmfmix_update_w(params, hparams);
+    if (is.null(fixed$W)) {
+      params$W <- pmfmix_update_w(params, hparams);
     }
     if (is.null(fixed$theta)) {
       params$theta <- update_theta(C, v, params, hparams)
     }
-    if (is.null(fixed$f)) {
-      params$f <- pmfmix_update_f(f, v, params);
+    if (is.null(fixed$F)) {
+      params$F <- pmfmix_update_f(f, v, params);
     }
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
     if (verbose) {
@@ -120,7 +120,7 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
   lps <- vapply(res, function(x) x$lp, -Inf);
   opt <- res[[which.max(lps)]];
   if (verbose) {
-    message("expected log joint probs: ", paste(format(lps, digits = 2), collapse = ", "))
+    message("expected unnorm log joint: ", paste(format(lps, digits = 2), collapse = ", "))
   }
 
   opt2 <- pmfmix_opt(C, v, opt$params, f, update_theta, hparams, control2, fixed,
@@ -138,14 +138,14 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
 pmfmix_update_gamma <- function(C, params) {
   N <- nrow(C);
   J <- ncol(C);
-  K <- ncol(params$w);
+  K <- ncol(params$W);
 
   Gamma <- array(0, c(N, J, K));
   for (i in 1:N) {
     for (j in 1:J) {
       s <- 0
       for (k in 1:K) {
-        Gamma[i, j, k] <- params$w[i, k] * params$f[[k]][j];
+        Gamma[i, j, k] <- params$W[i, k] * params$F[[k]][j];
         s <- s + Gamma[i, j, k];
       }
       Gamma[i, j, ] <- Gamma[i, j, ] / s;
@@ -157,24 +157,24 @@ pmfmix_update_gamma <- function(C, params) {
 pmfmix_update_z <- function(C, params) {
   N <- nrow(C);
   J <- ncol(C);
-  K <- ncol(params$w);
-  z <- array(0, c(N, J, K));
+  K <- ncol(params$W);
+  Z <- array(0, c(N, J, K));
   for (i in 1:N) {
     for (k in 1:K) {
-      z[i, , k] <- C[i, ] * params$Gamma[i, , k];
+      Z[i, , k] <- C[i, ] * params$Gamma[i, , k];
     }
   }
-  z
+  Z
 }
 
 pmfmix_update_w <- function(params, hparams) {
-  N <- nrow(params$w);
-  K <- ncol(params$w);
+  N <- nrow(params$W);
+  K <- ncol(params$W);
 
   w <- matrix(0, N, K);
   for (i in 1:N) {
     for (k in 1:K) {
-      w[i, k] <- sum(params$z[i, , k]) + hparams$alpha[k] - 1;
+      w[i, k] <- sum(params$Z[i, , k]) + hparams$alpha[k] - 1;
     }
   }
   w / rowSums(w)
@@ -188,7 +188,7 @@ pmfmix_update_f <- function(f, v, params) {
 }
 
 pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
-  lp_w <- sum((hparams$alpha - 1) * log(t(params$w)));
+  lp_w <- sum((hparams$alpha - 1) * log(t(params$W)));
 
   lp_theta <- 0;
   if (!is.null(log_prior_theta)) {
@@ -206,9 +206,9 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
         for (k in 1:K) {
           # guard against 0 * log(0) = NaN
           # here, 0 * log(0) = 0
-          if (params$z[i, j, k] > 0) {
+          if (params$Z[i, j, k] > 0) {
             ll <- ll + with(params,
-              z[i, j, k] * log(w[i, k] * f[[k]][j])
+              Z[i, j, k] * log(W[i, k] * F[[k]][j])
             );
           }
         }

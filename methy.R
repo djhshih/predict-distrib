@@ -28,7 +28,7 @@ initialize_theta_beta <- function(C, v, K, hparams) {
 update_theta_beta <- function(C, v, params, hparams) {
   N <- nrow(C);
   J <- ncol(C);
-  K <- ncol(params$w);
+  K <- ncol(params$W);
 
   # 2*K parameters in theta to optimize (mu and lambda)
   mparam_transform <- function(a) {
@@ -49,9 +49,9 @@ update_theta_beta <- function(C, v, params, hparams) {
     theta <- mparam_transform(a);
     lp <- with(theta, unlist(lapply(v,
       # mixture of beta distributions
-      function(x) log(t(params$w) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+      function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
     )));
-    # w^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
+    # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
     lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
     lp
@@ -59,7 +59,7 @@ update_theta_beta <- function(C, v, params, hparams) {
 
   # negative log likelihood
   objective <- function(a) {
-    - sum( params$z * lpdf_transform(a) )
+    - sum( params$Z * lpdf_transform(a) )
   }
 
   a0 <- mparam_rev_transform(params$theta);
@@ -96,19 +96,19 @@ fit <- pmfmix(
     alpha = rep(1, K)
   ),
   control = list(nstart = 3, niter = 25, abstol = 1e-4),
-  fixed = list(w = NULL, theta = NULL, Gamma = NULL),
+  fixed = list(W = NULL, theta = NULL, Gamma = NULL),
   verbose = TRUE
 )
 
 predicted.pdfs <- t(vapply(fit$params$theta, function(th) beta_pmf(v, th), numeric(length(v))))
-predicted.pdfs <- fit$params$w %*% predicted.pdfs
+predicted.pdfs <- fit$params$W %*% predicted.pdfs
 predicted.pdfs <- predicted.pdfs / rowSums(predicted.pdfs)
 yhat2 <- predicted.pdfs;
 
 sum( (yhat2 - target.pdfs)^2 )
 
 fit
-head(fit$params$w)
+head(fit$params$W)
 lapply(fit$params$theta, unlist)
 
 out.fn <- filename("ccoc-ts", path="out", tag=c("methy", "beta", "pmfmix"));
@@ -143,12 +143,12 @@ qdraw(
 
 sum( (yhat2 - target.pdfs)^2 )
 
-dim(fit$params$w)
-rowSums(fit$params$w)
+dim(fit$params$W)
+rowSums(fit$params$W)
 
 library(mmalign)
 qdraw(
-	pca_plot(t(fit$params$w), pheno=pheno, aes(colour=cluster)),
+	pca_plot(t(fit$params$W), pheno=pheno, aes(colour=cluster)),
 	width = 6,
 	file = insert(out.fn, tag=c("params", "pca"), ext="pdf")
 )

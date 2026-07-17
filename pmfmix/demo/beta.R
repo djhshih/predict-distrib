@@ -17,7 +17,7 @@ initialize_theta_beta <- function(C, v, K, hparams) {
 update_theta_beta <- function(C, v, params, hparams) {
   N <- nrow(C);
   J <- ncol(C);
-  K <- ncol(params$w);
+  K <- ncol(params$W);
 
   # 2*K parameters in theta to optimize (mu and lambda)
   mparam_transform <- function(a) {
@@ -38,7 +38,7 @@ update_theta_beta <- function(C, v, params, hparams) {
     theta <- mparam_transform(a);
     lp <- with(theta, unlist(lapply(v,
       # mixture of beta distributions
-      function(x) log(t(params$w) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+      function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
     )));
     # w^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
@@ -48,7 +48,7 @@ update_theta_beta <- function(C, v, params, hparams) {
 
   # negative log likelihood
   objective <- function(a) {
-    - sum( params$z * lpdf_transform(a) )
+    - sum( params$Z * lpdf_transform(a) )
   }
 
   a0 <- mparam_rev_transform(params$theta);
@@ -92,17 +92,17 @@ fit <- pmfmix(
   update_theta = update_theta_beta,
   hparams = list(alpha = c(1, 1)),
   control = list(nstart = 5, niter = 25, abstol = 1e-6),
-  fixed = list(w = NULL, theta = NULL, Gamma = NULL),
+  fixed = list(W = NULL, theta = NULL, Gamma = NULL),
   verbose = TRUE
 )
 
 plot(target, C / rowSums(C))
 
-pmf_mat_hat <- t(matrix(unlist(fit$params$f), nrow=ncol(C), ncol=ncol(true_w)));
+pmf_mat_hat <- t(matrix(unlist(fit$params$F), nrow=ncol(C), ncol=ncol(true_w)));
 plot(pmf_mat, pmf_mat_hat)
 cor(c(pmf_mat), c(pmf_mat_hat))
 
-target.hat <- fit$params$w %*% pmf_mat_hat;
+target.hat <- fit$params$W %*% pmf_mat_hat;
 rowSums(target.hat)
 target.hat
 target
@@ -118,7 +118,7 @@ for (i in 1:nrow(target)) {
 }
 
 cat("Mixture weights:\n")
-print(round(fit$params$w, 3))
+print(round(fit$params$W, 3))
 cat("Component parameters:\n")
 print(lapply(fit$params$theta, function(th) list(mu = round(th$mu, 3), lambda = round(th$lambda, 3))))
 

@@ -36,14 +36,14 @@ fit <- pmfmix(
   update_theta = update_theta_identity,
   hparams = list(alpha = c(1, 1)),
   control = list(nstart = 1, niter = 50, abstol = 1e-8),
-  fixed = list(theta = theta, w = NULL, Gamma = NULL),
+  fixed = list(theta = theta, W = NULL, Gamma = NULL),
   verbose = FALSE
 )
 
 assert(inherits(fit, "pmfmix"), "fit must inherit class 'pmfmix'")
-assert(all(dim(fit$params$w) == c(2, 2)), "w must be a 2x2 matrix")
-assert(max(abs(rowSums(fit$params$w) - 1)) < 1e-8, "rows of w must sum to 1")
-assert(fit$params$w[1, 1] > fit$params$w[1, 2], "sample 1 should favor component 1")
-assert(fit$params$w[2, 2] > fit$params$w[2, 1], "sample 2 should favor component 2")
+assert(all(dim(fit$params$W) == c(2, 2)), "w must be a 2x2 matrix")
+assert(max(abs(rowSums(fit$params$W) - 1)) < 1e-8, "rows of w must sum to 1")
+assert(fit$params$W[1, 1] > fit$params$W[1, 2], "sample 1 should favor component 1")
+assert(fit$params$W[2, 2] > fit$params$W[2, 1], "sample 2 should favor component 2")
 
 cat("pmfmix tests passed\n")
