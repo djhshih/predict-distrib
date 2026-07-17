@@ -36,10 +36,10 @@ update_theta_beta <- function(C, v, params, hparams) {
   # return N x M matrix, where each row is a probability mass function
   lwf_transform <- function(a) {
     theta <- mparam_transform(a);
-    lp <- with(theta, unlist(lapply(v,
+    lp <- unlist(lapply(v,
       # mixture of beta distributions
-      function(x) log(t(params$W)) + dbeta(x, mu*lambda, (1 - mu)*lambda, log=TRUE)
-    )));
+      function(x) log(t(params$W)) + beta_lpmf(x, theta)
+    ));
     # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
     aperm(array(lp, c(K, N, J)), c(2, 3, 1))
@@ -52,11 +52,11 @@ update_theta_beta <- function(C, v, params, hparams) {
 
   lpdf_transform <- function(a) {
     theta <- mparam_transform(a);
-    lp <- with(theta, unlist(lapply(v,
+    lp <- unlist(lapply(v,
       # mixture of beta distributions
       # numeric overflow can occur due to small dbeta, causing log(0) = -Inf
-      function(x) log(colSums(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda)))
-    )));
+      function(x) apply(t(log(params$W)) + beta_lpmf(x, theta), 2, matrixStats::logSumExp)
+    ));
     # output is N by K
     matrix(lp, nrow=nrow(C))
   }
