@@ -14,61 +14,61 @@ all(pheno$sample_id == rownames(data[-1, ]), na.rm=TRUE)
 # ---
 
 beta_pmf <- function(v, theta) {
-  dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda);
+	dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda);
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
-  mu_grid <- seq(min(v), max(v), length.out = K + 2)[2:(K+1)];
-  lambda <- rgamma(K, 10, 1);
-  lapply(seq_len(K), function(k) {
-    list(mu = mu_grid[k], lambda = lambda[k])
-  })
+	mu_grid <- seq(min(v), max(v), length.out = K + 2)[2:(K+1)];
+	lambda <- rgamma(K, 10, 1);
+	lapply(seq_len(K), function(k) {
+		list(mu = mu_grid[k], lambda = lambda[k])
+	})
 }
 
 update_theta_beta <- function(C, v, params, hparams) {
-  N <- nrow(C);
-  J <- ncol(C);
-  K <- ncol(params$W);
+	N <- nrow(C);
+	J <- ncol(C);
+	K <- ncol(params$W);
 
-  # 2*K parameters in theta to optimize (mu and lambda)
-  mparam_transform <- function(a) {
-    mu <- logistic(a[1:K]);
-    lambda <- exp(a[(K+1):(K+K)]);
-    list(mu = mu, lambda = lambda)
-  }
-  
-  mparam_rev_transform <- function(theta) {
-    mu <- unlist(lapply(theta, function(th) th$mu));
-    lambda <- unlist(lapply(theta, function(th) th$lambda));
-    c(logit(mu), log(lambda))
-  }
+	# 2*K parameters in theta to optimize (mu and lambda)
+	mparam_transform <- function(a) {
+		mu <- logistic(a[1:K]);
+		lambda <- exp(a[(K+1):(K+K)]);
+		list(mu = mu, lambda = lambda)
+	}
+	
+	mparam_rev_transform <- function(theta) {
+		mu <- unlist(lapply(theta, function(th) th$mu));
+		lambda <- unlist(lapply(theta, function(th) th$lambda));
+		c(logit(mu), log(lambda))
+	}
 
-  # Transform activities a to a probability mass function that is evaluated at xs
-  # return N x M matrix, where each row is a probability mass function
-  lpdf_transform <- function(a) {
-    theta <- mparam_transform(a);
-    lp <- with(theta, unlist(lapply(v,
-      # mixture of beta distributions
-      function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
-    )));
-    # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
-    # output is K by N by J; need N by J by K
-    lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
-    lp
-  }
+	# Transform activities a to a probability mass function that is evaluated at xs
+	# return N x M matrix, where each row is a probability mass function
+	lpdf_transform <- function(a) {
+		theta <- mparam_transform(a);
+		lp <- with(theta, unlist(lapply(v,
+			# mixture of beta distributions
+			function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+		)));
+		# W^T is K by N,	dbeta(x, ...) is K	 ->	each item is K by N
+		# output is K by N by J; need N by J by K
+		lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
+		lp
+	}
 
-  # negative log likelihood
-  objective <- function(a) {
-    - sum( params$Z * lpdf_transform(a) )
-  }
+	# negative log likelihood
+	objective <- function(a) {
+		- sum( params$Z * lpdf_transform(a) )
+	}
 
-  a0 <- mparam_rev_transform(params$theta);
-  opt <- optim(a0, objective, method="L-BFGS-B", lower=-4, upper=4);
-  theta <- mparam_transform(opt$par);
+	a0 <- mparam_rev_transform(params$theta);
+	opt <- optim(a0, objective, method="L-BFGS-B", lower=-4, upper=4);
+	theta <- mparam_transform(opt$par);
 
-  lapply(seq_len(K), function(k) {
-    list(mu = theta$mu[k], lambda = theta$lambda[k])
-  })
+	lapply(seq_len(K), function(k) {
+		list(mu = theta$mu[k], lambda = theta$lambda[k])
+	})
 }
 
 # ---
@@ -86,18 +86,18 @@ dim(target.pdfs)
 
 K <- 30
 fit <- pmfmix(
-  C = counts,
-  v = v,
-  K = K,
-  f = beta_pmf,
-  initialize_theta = initialize_theta_beta,
-  update_theta = update_theta_beta,
-  hparams = list(
-    alpha = rep(1, K)
-  ),
-  control = list(nstart = 3, niter = 25, abstol = 1e-4),
-  fixed = list(W = NULL, theta = NULL, Gamma = NULL),
-  verbose = TRUE
+	C = counts,
+	v = v,
+	K = K,
+	f = beta_pmf,
+	initialize_theta = initialize_theta_beta,
+	update_theta = update_theta_beta,
+	hparams = list(
+		alpha = rep(1, K)
+	),
+	control = list(nstart = 3, niter = 25, abstol = 1e-4),
+	fixed = list(W = NULL, theta = NULL, Gamma = NULL),
+	verbose = TRUE
 )
 
 predicted.pdfs <- fit$params$W %*% fit$params$F;
