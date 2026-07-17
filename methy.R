@@ -89,7 +89,7 @@ fit <- pmfmix(
 	C = counts,
 	v = v,
 	K = K,
-	f = beta_lpmf,
+	lf = beta_lpmf,
 	initialize_theta = initialize_theta_beta,
 	update_theta = update_theta_beta,
 	hparams = list(

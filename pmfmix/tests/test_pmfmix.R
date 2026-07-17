@@ -30,7 +30,7 @@ fit <- pmfmix(
   C = C,
   v = v,
   K = 2,
-  f = beta_lpmf,
+  lf = beta_lpmf,
   initialize_theta = initialize_theta_beta,
   update_theta = update_theta_identity,
   hparams = list(alpha = c(1, 1)),

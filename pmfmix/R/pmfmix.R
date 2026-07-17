@@ -48,11 +48,11 @@ pmfmix_initialize <- function(C, v, K, f, initialize_theta, hparams, fixed) {
   list(W = W, theta = theta)
 }
 
-pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
+pmfmix_opt <- function(C, v, params, lf, update_theta, hparams, control,
                        fixed, log_prior_theta, verbose = TRUE) {
   obj.old <- -Inf
-  if (is.null(fixed$f)) {
-    params$lF <- pmfmix_update_f(f, v, params);
+  if (is.null(fixed$lF)) {
+    params$lF <- pmfmix_update_f(lf, v, params);
   }
   for (iter in 1:control$niter) {
     if (is.null(fixed$Gamma)) {
@@ -68,7 +68,7 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
       params$theta <- update_theta(C, v, params, hparams)
     }
     if (is.null(fixed$lF)) {
-      params$lF <- pmfmix_update_f(f, v, params);
+      params$lF <- pmfmix_update_f(lf, v, params);
     }
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
     if (verbose) {
@@ -83,7 +83,7 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
   list(lp = obj, iter = iter, params = params)
 }
 
-pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
+pmfmix <- function(C, v, K, lf, update_theta, initialize_theta,
                    hparams = NULL, control = NULL, control2 = NULL, fixed = NULL,
                    log_prior_theta = NULL, verbose = TRUE) {
   stime <- proc.time();
@@ -112,8 +112,8 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
 
   res <- lapply(1:control$nstart, function(b) {
     if (verbose) message("start ", b)
-    params <- pmfmix_initialize(C, v, K, f, initialize_theta, hparams, fixed);
-    pmfmix_opt(C, v, params, f, update_theta, hparams, control, fixed,
+    params <- pmfmix_initialize(C, v, K, lf, initialize_theta, hparams, fixed);
+    pmfmix_opt(C, v, params, lf, update_theta, hparams, control, fixed,
                log_prior_theta, verbose = verbose);
   });
 
@@ -123,7 +123,7 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
     message("expected unnorm log joint: ", paste(format(lps, digits = 2), collapse = ", "))
   }
 
-  opt2 <- pmfmix_opt(C, v, opt$params, f, update_theta, hparams, control2, fixed,
+  opt2 <- pmfmix_opt(C, v, opt$params, lf, update_theta, hparams, control2, fixed,
                      log_prior_theta, verbose = verbose);
   opt2$iter <- c(opt$iter, opt2$iter);
 
