@@ -71,7 +71,7 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
       params$f <- pmfmix_update_f(f, v, params);
     }
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
-    print(obj)
+    message("iter: ", iter, ", objective: ", obj)
     if (obj - obj.old < control$abstol) {
       break
     }
@@ -109,6 +109,7 @@ pmfmix <- function(C, v, K, f, update_theta, initialize_theta,
   control2 <- c(control2, control2.default);
 
   res <- lapply(1:control$nstart, function(b) {
+    message("start ", b)
     params <- pmfmix_initialize(C, v, K, f, initialize_theta, hparams, fixed);
     pmfmix_opt(C, v, params, f, update_theta, hparams, control, fixed,
                log_prior_theta, verbose = verbose);
