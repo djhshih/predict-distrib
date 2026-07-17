@@ -14,14 +14,6 @@ initialize_theta_beta <- function(C, v, K, hparams) {
   })
 }
 
-logistic <- function(x) {
-	1 / (1 + exp(-x))
-}
-
-logit <- function(x) {
-  log(x) - log(1 - x)
-}
-
 update_theta_beta <- function(C, v, params, hparams) {
   N <- nrow(C);
   J <- ncol(C);
@@ -85,6 +77,7 @@ true_w <- rbind(
 
 pmf_mat <- do.call(rbind, lapply(true_theta, function(th) beta_pmf(v, th)))
 pmf_mat <- pmf_mat / rowSums(pmf_mat);
+
 target <- true_w %*% pmf_mat;
 rowSums(target)
 counts_total <- 1e5;
