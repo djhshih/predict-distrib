@@ -34,7 +34,7 @@ update_theta_beta <- function(C, v, params, hparams) {
 
   # Transform activities a to a probability mass function that is evaluated at xs
   # return N x M matrix, where each row is a probability mass function
-  lpdf_transform <- function(a) {
+  lwf_transform <- function(a) {
     theta <- mparam_transform(a);
     lp <- with(theta, unlist(lapply(v,
       # mixture of beta distributions
@@ -42,17 +42,34 @@ update_theta_beta <- function(C, v, params, hparams) {
     )));
     # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
-    lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
-    lp
+    aperm(array(lp, c(K, N, J)), c(2, 3, 1))
   }
 
-  # negative log likelihood
-  objective <- function(a) {
-    - sum( params$Z * lpdf_transform(a) )
+  # - E_Z[ log p(C, Z, theta) ]
+  objective_q <- function(a) {
+    - sum( params$Z * lwf_transform(a) )
   }
+
+  lpdf_transform <- function(a) {
+    theta <- mparam_transform(a);
+    lp <- with(theta, unlist(lapply(v,
+      # mixture of beta distributions
+      function(x) log(colSums(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda)))
+    )));
+    # output is N by K
+    matrix(lp, nrow=nrow(C))
+  }
+
+  # - log p(C, W, theta)
+  objective_marginal <- function(a) {
+    - sum( C * lpdf_transform(a) )
+  }
+
+  #objective <- objective_q;
+  objective <- objective_marginal;
 
   a0 <- mparam_rev_transform(params$theta);
-  opt <- optim(a0, objective, method="L-BFGS-B", lower=-3, upper=3);
+  opt <- optim(a0, objective, method="L-BFGS-B", lower=-4, upper=5);
   theta <- mparam_transform(opt$par);
 
   lapply(seq_len(K), function(k) {
@@ -102,8 +119,9 @@ plot(pmf_mat, fit$params$F)
 cor(c(pmf_mat), c(fit$params$F))
 
 target.hat <- fit$params$W %*% fit$params$F;
-target.hat
-target
+
+print(target)
+print(target.hat)
 
 plot(target, target.hat)
 cor(t(target), t(target.hat))
