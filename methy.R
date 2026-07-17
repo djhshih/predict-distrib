@@ -63,7 +63,7 @@ update_theta_beta <- function(C, v, params, hparams) {
   }
 
   a0 <- mparam_rev_transform(params$theta);
-  opt <- optim(a0, objective, method="L-BFGS-B", lower=-3, upper=3);
+  opt <- optim(a0, objective, method="L-BFGS-B", lower=-6, upper=6);
   theta <- mparam_transform(opt$par);
 
   lapply(seq_len(K), function(k) {
@@ -100,12 +100,10 @@ fit <- pmfmix(
   verbose = TRUE
 )
 
-predicted.pdfs <- t(vapply(fit$params$theta, function(th) beta_pmf(v, th), numeric(length(v))))
-predicted.pdfs <- fit$params$W %*% predicted.pdfs
-predicted.pdfs <- predicted.pdfs / rowSums(predicted.pdfs)
-yhat2 <- predicted.pdfs;
+predicted.pdfs <- fit$params$W %*% fit$params$F;
+rowSums(predicted.pdfs)
 
-sum( (yhat2 - target.pdfs)^2 )
+mean( (predicted.pdfs - target.pdfs)^2 )
 
 fit
 head(fit$params$W)
@@ -114,10 +112,10 @@ lapply(fit$params$theta, unlist)
 out.fn <- filename("ccoc-ts", path="out", tag=c("methy", "beta", "pmfmix"));
 
 
-mses <- rowSums((target.pdfs - yhat2)^2);
+mses <- rowMeans((predicted.pdfs - target.pdfs)^2);
 idx <- order(mses, decreasing=TRUE);
 
-i <- idx[200];
+i <- idx[1];
 plot(v, target.pdfs[i, ], type="l")
 lines(v, counts[i, ] / rowSums(counts[i, , drop=FALSE]), col="red")
 lines(v, yhat2[i, ], col="blue")
@@ -141,7 +139,7 @@ qdraw(
 	file = insert(out.fn, tag=c("pdf", "observed-vs-predicted"), ext="pdf")
 )
 
-sum( (yhat2 - target.pdfs)^2 )
+mean( (predicted.pdfs - target.pdfs)^2 )
 
 dim(fit$params$W)
 rowSums(fit$params$W)

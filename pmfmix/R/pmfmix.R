@@ -143,12 +143,8 @@ pmfmix_update_gamma <- function(C, params) {
   Gamma <- array(0, c(N, J, K));
   for (i in 1:N) {
     for (j in 1:J) {
-      s <- 0
-      for (k in 1:K) {
-        Gamma[i, j, k] <- params$W[i, k] * params$F[[k]][j];
-        s <- s + Gamma[i, j, k];
-      }
-      Gamma[i, j, ] <- Gamma[i, j, ] / s;
+      s <- params$W[i, ] * params$F[, j];
+      Gamma[i, j, ] <- s / sum(s);
     }
   }
   Gamma
@@ -181,10 +177,12 @@ pmfmix_update_w <- function(params, hparams) {
 }
 
 pmfmix_update_f <- function(f, v, params) {
-  lapply(params$theta, function(theta) {
+  F <- unlist(lapply(params$theta, function(theta) {
     pmf <- f(v, theta);
     pmf / sum(pmf)
-  })
+  }));
+  # result is J by K; output K by J
+  t(matrix(F, nrow=length(v)))
 }
 
 pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
@@ -208,7 +206,7 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
           # here, 0 * log(0) = 0
           if (params$Z[i, j, k] > 0) {
             ll <- ll + with(params,
-              Z[i, j, k] * log(W[i, k] * F[[k]][j])
+              Z[i, j, k] * log(W[i, k] * F[k, j])
             );
           }
         }

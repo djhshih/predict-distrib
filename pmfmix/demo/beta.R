@@ -98,12 +98,10 @@ fit <- pmfmix(
 
 plot(target, C / rowSums(C))
 
-pmf_mat_hat <- t(matrix(unlist(fit$params$F), nrow=ncol(C), ncol=ncol(true_w)));
-plot(pmf_mat, pmf_mat_hat)
-cor(c(pmf_mat), c(pmf_mat_hat))
+plot(pmf_mat, fit$params$F)
+cor(c(pmf_mat), c(fit$params$F))
 
-target.hat <- fit$params$W %*% pmf_mat_hat;
-rowSums(target.hat)
+target.hat <- fit$params$W %*% fit$params$F;
 target.hat
 target
 
