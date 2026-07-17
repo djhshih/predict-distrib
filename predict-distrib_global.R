@@ -25,7 +25,7 @@ mparam_transform <- function(a, N, K) {
 }
 
 # Transform activities a to a probability mass function that is evaluated at xs
-# return N x M matrix, where each row is a probability mass function
+# return N x J matrix, where each row is a probability mass function
 mpdf_transform <- function(a, xs, N, K) {
 	params <- mparam_transform(a, N, K);
 
@@ -33,7 +33,7 @@ mpdf_transform <- function(a, xs, N, K) {
 		# mixture of beta distributions
 		function(x) colSums(t(w) * dbeta(x, mu*lambda, (1 - mu)*lambda))
 	)), nrow=N));
-	# ys is N x M, where M = length(xs)
+	# ys is N x J, where J = length(xs)
 
 	ys / rowSums(ys)
 }
