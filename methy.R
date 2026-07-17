@@ -13,8 +13,7 @@ all(pheno$sample_id == rownames(data[-1, ]), na.rm=TRUE)
 # ---
 
 beta_pmf <- function(v, theta) {
-  probs <- dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda);
-  probs / sum(probs)
+  dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda);
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
@@ -48,27 +47,35 @@ update_theta_beta <- function(C, v, params, hparams) {
   
   mparam_rev_transform <- function(theta) {
     mu <- unlist(lapply(theta, function(th) th$mu));
-    lambda <- unlist(lapply(theta, function(th) th$mu));
+    lambda <- unlist(lapply(theta, function(th) th$lambda));
     c(logit(mu), log(lambda))
   }
 
   # Transform activities a to a probability mass function that is evaluated at xs
   # return N x M matrix, where each row is a probability mass function
-  mpdf_transform <- function(a) {
+  lpdf_transform <- function(a) {
     theta <- mparam_transform(a);
-    ys <- with(theta, matrix(unlist(lapply(v,
+    lp <- with(theta, unlist(lapply(v,
       # mixture of beta distributions
-      function(x) colSums(t(params$w) * dbeta(x, mu*lambda, (1 - mu)*lambda))
-    )), nrow=N));
-    ys / rowSums(ys)
+      function(x) log(t(params$w) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+    )));
+    # w^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
+    # output is K by N by J; need N by J by K
+    lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
+    # message("lp:")
+    # print(str(exp(lp) / sum(exp(lp))))
+    lp
   }
 
+  # negative log likelihood
   objective <- function(a) {
-    - sum( C * log(mpdf_transform(a)) )
+    # message("z:")
+    # print(str(params$z / sum(params$z)))
+    - sum( params$z * lpdf_transform(a) )
   }
 
   a0 <- mparam_rev_transform(params$theta);
-  opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
+  opt <- optim(a0, objective, method="L-BFGS-B", lower=-3, upper=3);
   theta <- mparam_transform(opt$par);
 
   lapply(seq_len(K), function(k) {
