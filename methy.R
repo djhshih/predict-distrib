@@ -118,7 +118,7 @@ idx <- order(mses, decreasing=TRUE);
 i <- idx[1];
 plot(v, target.pdfs[i, ], type="l")
 lines(v, counts[i, ] / rowSums(counts[i, , drop=FALSE]), col="red")
-lines(v, yhat2[i, ], col="blue")
+lines(v, predicted.pdfs[i, ], col="blue")
 
 # @params xs  1 by M
 # @params ys  N by M
@@ -133,7 +133,7 @@ qdraw(
 	{
 		par(mfrow=c(2, 1))
 		distrib_plots(v, target.pdfs, main="observed pdf")
-		distrib_plots(v, yhat2, main="predicted pdf")
+		distrib_plots(v, predicted.pdfs, main="predicted pdf")
 	},
 	height = 10,
 	file = insert(out.fn, tag=c("pdf", "observed-vs-predicted"), ext="pdf")
@@ -141,15 +141,21 @@ qdraw(
 
 mean( (predicted.pdfs - target.pdfs)^2 )
 
-dim(fit$params$W)
-rowSums(fit$params$W)
-
 library(mmalign)
 qdraw(
 	pca_plot(t(fit$params$W), pheno=pheno, aes(colour=cluster)),
 	width = 6,
 	file = insert(out.fn, tag=c("params", "pca"), ext="pdf")
 )
+
+wsums <- colSums(fit$params$W);
+idx <- order(wsums)[1:10];
+qdraw(
+	pca_plot(t(fit$params$W[, idx]), pheno=pheno, aes(colour=cluster)),
+	width = 6,
+	file = insert(out.fn, tag=c("top-w", "pca"), ext="pdf")
+)
+
 
 qwrite(fit$params, insert(out.fn, tag="params", ext="rds"));
 
