@@ -2,7 +2,7 @@ library(io)
 library(devtools)
 load_all("pmfmix")
 
-# data <- t(qread("data/ccoc-ts_methy_beta_cleaned_dist.rds"));
+data <- t(qread("data/ccoc-ts_methy_beta_cleaned_dist.rds"));
 pheno0 <- qread("data/ccoc-ts_sample-info_stage3.tsv");
 pheno0$cluster[pheno0$cluster == "mixture"] <- "hypomethylated";
 pheno0$cluster[which(pheno0$sample_type == "normal")] <- "normal";
@@ -63,7 +63,7 @@ update_theta_beta <- function(C, v, params, hparams) {
   }
 
   a0 <- mparam_rev_transform(params$theta);
-  opt <- optim(a0, objective, method="L-BFGS-B", lower=-6, upper=6);
+  opt <- optim(a0, objective, method="L-BFGS-B", lower=-4, upper=4);
   theta <- mparam_transform(opt$par);
 
   lapply(seq_len(K), function(k) {
