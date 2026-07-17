@@ -40,7 +40,7 @@ update_theta_beta <- function(C, v, params, hparams) {
       # mixture of beta distributions
       function(x) log(t(params$W) * dbeta(x, mu*lambda, (1 - mu)*lambda))
     )));
-    # w^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
+    # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
     lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
     lp
