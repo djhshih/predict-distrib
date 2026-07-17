@@ -11,7 +11,7 @@ initialize_theta_beta <- function(C, v, K, hparams) {
   lapply(seq_len(K), function(k) list(mu = mus[k], lambda = 20))
 }
 
-update_theta_identity <- function(C, v, Gamma, theta, hparams) theta
+update_theta_identity <- function(C, v, params, hparams) theta
 
 assert <- function(cond, msg) {
   if (!isTRUE(cond)) stop(msg, call. = FALSE)

@@ -65,7 +65,7 @@ pmfmix_opt <- function(C, v, params, f, update_theta, hparams, control,
       params$w <- pmfmix_update_w(C, params, hparams);
     }
     if (is.null(fixed$theta)) {
-      params$theta <- update_theta(C, v, params$Gamma, params$theta, hparams)
+      params$theta <- update_theta(C, v, params, hparams)
     }
     obj <- pmfmix_obj(C, params, hparams, log_prior_theta)
     print(obj)
@@ -198,9 +198,12 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
     for (j in 1:J) {
       if (C[i, j] > 0) {
         for (k in 1:K) {
-          ll <- ll + with(params,
-            z[i, j, k] * log(w[i, k] * f[[k]][j])
-          );
+          # guard against log(0) = -Inf
+          if (params$z[i, j, k] > 0) {
+            ll <- ll + with(params,
+              z[i, j, k] * log(w[i, k] * f[[k]][j])
+            );
+          }
         }
       }
     }

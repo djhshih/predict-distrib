@@ -25,25 +25,58 @@ initialize_theta_beta <- function(C, v, K, hparams) {
   })
 }
 
+logistic <- function(x) {
+	1 / (1 + exp(-x))
+}
+
+logit <- function(x) {
+  log(x) - log(1 - x)
+}
+
 # FIXME these updates are based on heuristics
-update_theta_beta <- function(C, v, Gamma, theta, hparams) {
-  K <- dim(Gamma)[3]
+update_theta_beta <- function(C, v, params, hparams) {
+  N <- nrow(C);
+  J <- ncol(C);
+  K <- ncol(params$w);
+
+  # 2*K parameters in theta to optimize (mu and lambda)
+  mparam_transform <- function(a) {
+    mu <- logistic(a[1:K]);
+    lambda <- exp(a[(K+1):(K+K)]);
+    list(mu = mu, lambda = lambda)
+  }
+  
+  mparam_rev_transform <- function(theta) {
+    mu <- unlist(lapply(theta, function(th) th$mu));
+    lambda <- unlist(lapply(theta, function(th) th$mu));
+    c(logit(mu), log(lambda))
+  }
+
+  # Transform activities a to a probability mass function that is evaluated at xs
+  # return N x M matrix, where each row is a probability mass function
+  mpdf_transform <- function(a) {
+    theta <- mparam_transform(a);
+    ys <- with(theta, matrix(unlist(lapply(v,
+      # mixture of beta distributions
+      function(x) colSums(t(params$w) * dbeta(x, mu*lambda, (1 - mu)*lambda))
+    )), nrow=N));
+    ys / rowSums(ys)
+  }
+
+  objective <- function(a) {
+    - sum( C * log(mpdf_transform(a)) )
+  }
+
+  a0 <- mparam_rev_transform(params$theta);
+  opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
+  theta <- mparam_transform(opt$par);
+
   lapply(seq_len(K), function(k) {
-    weights <- colSums(C * Gamma[, , k, drop = FALSE][, , 1])
-    total <- sum(weights)
-    if (total <= 0) {
-      return(theta[[k]])
-    }
-
-    mu_hat <- sum(weights * v) / total
-    var_hat <- sum(weights * (v - mu_hat)^2) / total
-    lambda_hat <- if (var_hat <= 0) hparams$lambda_bounds[2] else mu_hat * (1 - mu_hat) / var_hat - 1
-    mu_hat <- max(hparams$mu_eps, min(1 - hparams$mu_eps, mu_hat))
-    lambda_hat <- max(hparams$lambda_bounds[1], min(hparams$lambda_bounds[2], lambda_hat))
-
-    list(mu = mu_hat, lambda = lambda_hat)
+    list(mu = theta$mu[k], lambda = theta$lambda[k])
   })
 }
+
+# ---
 
 v <- data[1, ];
 target.pdfs <- data[-1, ];
@@ -65,9 +98,7 @@ fit <- pmfmix(
   initialize_theta = initialize_theta_beta,
   update_theta = update_theta_beta,
   hparams = list(
-    alpha = rep(1, K),
-    lambda_bounds = c(2, 500),
-    mu_eps = 1e-6
+    alpha = rep(1, K)
   ),
   control = list(nstart = 3, niter = 25, abstol = 1e-4),
   fixed = list(w = NULL, theta = NULL, Gamma = NULL),

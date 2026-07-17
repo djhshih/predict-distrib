@@ -1,4 +1,4 @@
-library(devtools)
+library(devtools) 
 load_all("..")
 
 beta_pmf <- function(v, theta) {
@@ -15,7 +15,9 @@ initialize_theta_beta <- function(C, v, K, hparams) {
   })
 }
 
-update_theta_beta <- function(C, v, Gamma, theta, hparams) {
+update_theta_beta <- function(C, v, params, hparams) {
+  Gamma <- params$Gamma;
+  theta <- params$theta;
   K <- dim(Gamma)[3]
   lapply(seq_len(K), function(k) {
     weights <- colSums(C * Gamma[, , k, drop = FALSE][, , 1])
