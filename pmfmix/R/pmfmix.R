@@ -123,6 +123,8 @@ pmfmix <- function(C, v, K, lf, update_theta, initialize_theta,
                      log_prior_theta, verbose = verbose);
   opt2$iter <- c(opt$iter, opt2$iter);
 
+  rownames(opt2$params$W) <- rownames(C);
+
   if (verbose) {
     message("Elapsed time: ", proc.time()[3] - stime[3])
   }
