@@ -50,6 +50,12 @@ update_theta_beta <- function(C, v, params, hparams) {
     - sum( params$Z * lwf_transform(a) )
   }
 
+  objective_q2 <- function(a) {
+    theta <- mparam_transform(a);
+    # TODO
+    pmfmix_obj 
+  }
+
   lpdf_transform <- function(a) {
     theta <- mparam_transform(a);
     lp <- unlist(lapply(v,
