@@ -7,14 +7,17 @@ pheno0 <- qread("data/ccoc-ts_sample-info_stage3.tsv");
 pheno0$cluster[pheno0$cluster == "mixture"] <- "hypomethylated";
 pheno0$cluster[which(pheno0$sample_type == "normal")] <- "normal";
 
+rownames(data) <- sub("-02", "", rownames(data));
+rownames(data) <- sub("R$", "", rownames(data));
+
 idx <- match(rownames(data[-1, ]), pheno0$sample_id);
 pheno <- pheno0[idx, ];
-all(pheno$sample_id == rownames(data[-1, ]), na.rm=TRUE)
+stopifnot(pheno$sample_id == rownames(data[-1, ]))
 
 # ---
 
 beta_lpmf <- function(v, theta) {
-	dbeta(v, theta$mu * theta$lambda, (1 - theta$mu) * theta$lambda, log=TRUE);
+	with(theta, dbeta(v, mu * lambda, (1 - mu) * lambda, log=TRUE))
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
@@ -41,21 +44,20 @@ update_theta_beta <- function(C, v, params, hparams) {
 
 	# Transform activities a to a probability mass function that is evaluated at xs
 	# return N x M matrix, where each row is a probability mass function
-	lpdf_transform <- function(a) {
+	lwf_transform <- function(a) {
 		theta <- mparam_transform(a);
-		lp <- with(theta, unlist(lapply(v,
+		lp <- unlist(lapply(v,
 			# mixture of beta distributions
-			function(x) log(t(params$W)) + dbeta(x, mu*lambda, (1 - mu)*lambda, log=TRUE)
-		)));
+			function(x) log(t(params$W)) + beta_lpmf(x, theta)
+		));
 		# W^T is K by N,  dbeta(x, ...) is K  ->  each item is K by N
 		# output is K by N by J; need N by J by K
-		lp <- aperm(array(lp, c(K, N, J)), c(2, 3, 1))
-		lp
+		aperm(array(lp, c(K, N, J)), c(2, 3, 1))
 	}
 
 	# negative log likelihood
 	objective <- function(a) {
-		- sum( params$Z * lpdf_transform(a) )
+		- sum( params$Z * lwf_transform(a) )
 	}
 
 	a0 <- mparam_rev_transform(params$theta);
@@ -77,6 +79,8 @@ dim(counts)
 dim(target.pdfs)
 
 # ---
+
+set.seed(1)
 
 K <- 30
 fit <- pmfmix(
@@ -101,7 +105,6 @@ mean( (predicted.pdfs - target.pdfs)^2 )
 
 fit
 head(fit$params$W)
-lapply(fit$params$theta, unlist)
 
 out.fn <- filename("ccoc-ts", path="out", tag=c("methy", "beta", "pmfmix"));
 
@@ -109,7 +112,7 @@ out.fn <- filename("ccoc-ts", path="out", tag=c("methy", "beta", "pmfmix"));
 mses <- rowMeans((predicted.pdfs - target.pdfs)^2);
 idx <- order(mses, decreasing=TRUE);
 
-i <- idx[1];
+i <- idx[2];
 plot(v, target.pdfs[i, ], type="l")
 lines(v, counts[i, ] / rowSums(counts[i, , drop=FALSE]), col="red")
 lines(v, predicted.pdfs[i, ], col="blue")
