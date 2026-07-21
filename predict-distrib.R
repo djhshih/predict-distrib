@@ -1,12 +1,6 @@
 # Predict a bounded continuous distribution using a mixture of betas
 
-softmax <- function(x) {
-	exp(x) / sum(exp(x))
-}
-
-logistic <- function(x) {
-	1 / (1 + exp(-x))
-}
+source("pmfmix/R/math.R")
 
 param_transform <- function(a) {
 	K <- length(a) / 3;

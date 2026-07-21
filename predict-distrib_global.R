@@ -1,13 +1,7 @@
 # Predict bounded continuous distributions using a mixture of betas
 # with global mean and scale parameters
 
-softmax <- function(x) {
-	exp(x) / sum(exp(x))
-}
-
-logistic <- function(x) {
-	1 / (1 + exp(-x))
-}
+source("pmfmix/R/math.R")
 
 mparam_transform <- function(a, N, K) {
 	w_end <- N * K;
