@@ -8,10 +8,8 @@ beta_lpmf <- function(v, theta) {
 initialize_theta_beta <- function(C, v, K, hparams) {
   vmin <- min(v)
   vmax <- max(v)
-  mus <- seq(vmin, vmax, length.out = K + 2)[2:(K + 1)]
-  lapply(seq_len(K), function(k) {
-    list(mu = mus[k], lambda = 1)
-  })
+  mu <- seq(vmin, vmax, length.out = K + 2)[2:(K + 1)]
+  list(mu = mu, lambda = rep(1, K))
 }
 
 update_theta_beta <- function(C, v, params, hparams) {
@@ -27,9 +25,7 @@ update_theta_beta <- function(C, v, params, hparams) {
   }
   
   mparam_rev_transform <- function(theta) {
-    mu <- unlist(lapply(theta, function(th) th$mu));
-    lambda <- unlist(lapply(theta, function(th) th$lambda));
-    c(logit(mu), log(lambda))
+    c(logit(theta$mu), log(theta$lambda))
   }
 
   # Transform activities a to a probability mass function that is evaluated at xs
@@ -48,12 +44,6 @@ update_theta_beta <- function(C, v, params, hparams) {
   # - E_Z[ log p(C, Z, theta) ]
   objective_q <- function(a) {
     - sum( params$Z * lwf_transform(a) )
-  }
-
-  objective_q2 <- function(a) {
-    theta <- mparam_transform(a);
-    # TODO
-    pmfmix_obj 
   }
 
   lpdf_transform <- function(a) {
@@ -80,9 +70,7 @@ update_theta_beta <- function(C, v, params, hparams) {
   opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
   theta <- mparam_transform(opt$par);
 
-  lapply(seq_len(K), function(k) {
-    list(mu = theta$mu[k], lambda = theta$lambda[k])
-  })
+  theta
 }
 
 set.seed(1)
@@ -145,5 +133,5 @@ for (i in 1:nrow(target)) {
 cat("Mixture weights:\n")
 print(round(fit$params$W, 3))
 cat("Component parameters:\n")
-print(lapply(fit$params$theta, function(th) list(mu = round(th$mu, 3), lambda = round(th$lambda, 3))))
+print(fit$params$theta)
 

@@ -175,7 +175,10 @@ pmfmix_update_w <- function(params, hparams) {
 }
 
 pmfmix_update_f <- function(lf, v, params) {
-  lF <- unlist(lapply(params$theta, function(theta) {
+  K <- ncol(params$W);
+  lF <- unlist(lapply(1:K, function(k) {
+    # package theta as a list of (a[k], b[k], ...)
+    theta <- lapply(params$theta, function(x) x[k]);
     lpmf <- lf(v, theta);
     lpmf - matrixStats::logSumExp(lpmf)
   }));
