@@ -87,11 +87,7 @@ library(mmalign)
 pca_plot(t(W), pheno, aes(color=cluster))
 pca_plot(t(W), pheno, aes(color=cluster), dims=3:4)
 
-mu <- unlist(lapply(params$theta, function(th) th$mu));
-lambda <- unlist(lapply(params$theta, function(th) th$lambda));
-
 v <- seq(0.005, 0.995, by=0.01);
-
 
 lF <- exp(params$lF);
 dm <- melt(lF, varnames=c("component", "bin"));
