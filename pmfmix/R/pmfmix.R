@@ -196,7 +196,7 @@ pmfmix_obj <- function(C, params, hparams, log_prior_theta = NULL) {
 
   N <- nrow(C);
   J <- ncol(C);
-  K <- length(params$theta);
+  K <- ncol(params$W);
 
   ll <- 0;
   for (i in 1:N) {
