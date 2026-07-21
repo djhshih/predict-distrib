@@ -36,7 +36,7 @@ update_theta_beta <- function(C, v, params, hparams) {
       # mixture of beta distributions
       function(x) log(t(params$W)) + beta_lpmf(x, theta)
     ));
-    # W^T is K by N,  dbeta(x, ...) is K   ->  each item is K by N
+    # W^T is K by N,  beta_lpmf(x, theta) is K   ->  each item is K by N
     # output is K by N by J; need N by J by K
     aperm(array(lp, c(K, N, J)), c(2, 3, 1))
   }
@@ -73,11 +73,11 @@ update_theta_beta <- function(C, v, params, hparams) {
   theta
 }
 
-set.seed(1)
+set.seed(1234)
 v <- seq(0.05, 0.95, by = 0.05)
 true_theta <- list(
   list(mu = 0.25, lambda = 10),
-  list(mu = 0.75, lambda = 30)
+  list(mu = 0.75, lambda = 20)
 )
 true_w <- rbind(
   c(0.85, 0.15),
@@ -96,16 +96,16 @@ rowSums(target)
 counts_total <- 1e5;
 C <- t(apply(target, 1, function(p) as.vector(rmultinom(1, counts_total, p))))
 
+K <- 2;
 fit <- pmfmix(
   C = C,
   v = v,
-  K = 2,
+  K = K,
   lf = beta_lpmf,
   initialize_theta = initialize_theta_beta,
   update_theta = update_theta_beta,
-  hparams = list(alpha = c(1, 1)),
+  hparams = list(alpha = rep(1, K)),
   control = list(nstart = 5, niter = 25, abstol = 1e-6),
-  fixed = list(W = NULL, theta = NULL, Gamma = NULL),
   verbose = TRUE
 )
 

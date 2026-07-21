@@ -50,18 +50,18 @@ update_theta_beta <- function(C, v, params, hparams) {
 			# mixture of beta distributions
 			function(x) log(t(params$W)) + beta_lpmf(x, theta)
 		));
-		# W^T is K by N,  dbeta(x, ...) is K  ->  each item is K by N
+		# W^T is K by N,  beta_lpmf(x, theta) is K   ->  each item is K by N
 		# output is K by N by J; need N by J by K
 		aperm(array(lp, c(K, N, J)), c(2, 3, 1))
 	}
 
-	# negative log likelihood
-	objective <- function(a) {
-		- sum( params$Z * lwf_transform(a) )
+	# - E_Z[ log p(C, Z, theta) ]
+	objective_q <- function(a) {
+		- sum( params$Z * lwf_transform(a) );
 	}
 
 	a0 <- mparam_rev_transform(params$theta);
-	opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
+	opt <- optim(a0, objective_q, method="L-BFGS-B", lower=-10, upper=10);
 	theta <- mparam_transform(opt$par);
 
 	theta
@@ -80,7 +80,7 @@ dim(target.pdfs)
 
 # ---
 
-set.seed(1)
+set.seed(1234)
 
 K <- 30
 fit <- pmfmix(
@@ -90,11 +90,8 @@ fit <- pmfmix(
 	lf = beta_lpmf,
 	initialize_theta = initialize_theta_beta,
 	update_theta = update_theta_beta,
-	hparams = list(
-		alpha = rep(1, K)
-	),
+	hparams = list(alpha = rep(1, K)),
 	control = list(nstart = 3, niter = 25, abstol = 1e-4),
-	fixed = list(W = NULL, theta = NULL, Gamma = NULL),
 	verbose = TRUE
 )
 
