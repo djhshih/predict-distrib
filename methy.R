@@ -18,11 +18,9 @@ beta_lpmf <- function(v, theta) {
 }
 
 initialize_theta_beta <- function(C, v, K, hparams) {
-	mu_grid <- seq(min(v), max(v), length.out = K + 2)[2:(K+1)];
+	mu <- seq(min(v), max(v), length.out = K + 2)[2:(K+1)];
 	lambda <- rgamma(K, 10, 1);
-	lapply(seq_len(K), function(k) {
-		list(mu = mu_grid[k], lambda = lambda[k])
-	})
+	list(mu = mu, lambda = lambda)
 }
 
 update_theta_beta <- function(C, v, params, hparams) {
@@ -38,9 +36,7 @@ update_theta_beta <- function(C, v, params, hparams) {
 	}
 	
 	mparam_rev_transform <- function(theta) {
-		mu <- unlist(lapply(theta, function(th) th$mu));
-		lambda <- unlist(lapply(theta, function(th) th$lambda));
-		c(logit(mu), log(lambda))
+		c(logit(theta$mu), log(theta$lambda))
 	}
 
 	# Transform activities a to a probability mass function that is evaluated at xs
@@ -66,9 +62,7 @@ update_theta_beta <- function(C, v, params, hparams) {
 	opt <- optim(a0, objective, method="L-BFGS-B", lower=-10, upper=10);
 	theta <- mparam_transform(opt$par);
 
-	lapply(seq_len(K), function(k) {
-		list(mu = theta$mu[k], lambda = theta$lambda[k])
-	})
+	theta
 }
 
 # ---
@@ -155,7 +149,6 @@ qdraw(
 	width = 6,
 	file = insert(out.fn, tag=c("top-w", "pca"), ext="pdf")
 )
-
 
 qwrite(fit$params, insert(out.fn, tag="params", ext="rds"));
 
