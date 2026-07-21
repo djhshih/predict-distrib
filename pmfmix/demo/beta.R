@@ -76,17 +76,21 @@ update_theta_beta <- function(C, v, params, hparams) {
 set.seed(1234)
 v <- seq(0.05, 0.95, by = 0.05)
 true_theta <- list(
-  list(mu = 0.25, lambda = 10),
-  list(mu = 0.75, lambda = 20)
+  list(mu = 0.2, lambda = 10),
+  list(mu = 0.8, lambda = 20),
+  list(mu = 0.5, lambda = 5)
 )
 true_w <- rbind(
-  c(0.85, 0.15),
-  c(0.55, 0.45),
-  c(0.20, 0.80),
-  c(0.40, 0.60),
-  c(0.10, 0.90),
-  c(0.90, 0.10)
-)
+  c(0.85, 0.05, 0.10),
+  c(0.55, 0.25, 0.20),
+  c(0.20, 0.50, 0.30),
+  c(0.40, 0.50, 0.10),
+  c(0.10, 0.40, 0.50),
+  c(0.80, 0.10, 0.10),
+  c(0.50, 0.20, 0.30),
+  c(0.10, 0.50, 0.40)
+);
+true_w <- true_w / rowSums(true_w);
 
 pmf_mat <- do.call(rbind, lapply(true_theta, function(th) exp(beta_lpmf(v, th))))
 pmf_mat <- pmf_mat / rowSums(pmf_mat);
@@ -96,7 +100,7 @@ rowSums(target)
 counts_total <- 1e5;
 C <- t(apply(target, 1, function(p) as.vector(rmultinom(1, counts_total, p))))
 
-K <- 2;
+K <- 3;
 fit <- pmfmix(
   C = C,
   v = v,
@@ -105,7 +109,7 @@ fit <- pmfmix(
   initialize_theta = initialize_theta_beta,
   update_theta = update_theta_beta,
   hparams = list(alpha = rep(1, K)),
-  control = list(nstart = 5, niter = 25, abstol = 1e-6),
+  control = list(nstart = 1, niter = 25, abstol = 1e-6),
   verbose = TRUE
 )
 
@@ -124,7 +128,7 @@ plot(target, target.hat)
 cor(t(target), t(target.hat))
 cor(c(target), c(target.hat))
 
-par(mfrow=c(3, 2))
+par(mfrow=c(4, 2))
 for (i in 1:nrow(target)) {
   plot(v, target[i, ], type="l")
   lines(v, target.hat[i, ], col="blue")
