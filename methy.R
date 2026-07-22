@@ -109,10 +109,13 @@ out.fn <- filename("ccoc-ts", path="out", tag=c("methy", "beta", "pmfmix"));
 mses <- rowMeans((predicted.pdfs - target.pdfs)^2);
 idx <- order(mses, decreasing=TRUE);
 
-i <- idx[1];
-plot(v, target.pdfs[i, ], type="l")
-lines(v, counts[i, ] / rowSums(counts[i, , drop=FALSE]), col="red")
-lines(v, predicted.pdfs[i, ], col="blue")
+par(mfrow=c(4, 2));
+for (i in 1:8) {
+	ii <- idx[i];
+	plot(v, target.pdfs[ii, ], type="l")
+	lines(v, counts[ii, ] / rowSums(counts[ii, , drop=FALSE]), col="red")
+	lines(v, predicted.pdfs[ii, ], col="blue")
+}
 
 # @params xs  1 by M
 # @params ys  N by M
